@@ -58,6 +58,13 @@ class Vocab:
         return len(self.word2index)
 
 
+    def contains(self, word: str) -> bool:
+        """
+        Check if a word is in the vocabulary
+        """
+        return word in self.word2index
+
+
     def get_index_from_word(self, word: str) -> int:
         """
         Params: word (str) the word that one needs to find index for

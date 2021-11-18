@@ -1,5 +1,5 @@
 from typing import *
-
+from language.vocab import Vocab
 
 def get_sentences(data_path: str) -> List[str]:
     """
@@ -18,7 +18,7 @@ def process_sentences(sentences: List[str], is_target: bool = False) -> List[Lis
     Params: 
     sentence (List[str]): a list of sentences (list of strings)
     is_target (bool): a boolean denotes if these sentences are from target language
-    
+
     Returns: a list containing list of tokens , which are splitted sentences
     """
     processed_sentences = []
@@ -33,6 +33,26 @@ def process_sentences(sentences: List[str], is_target: bool = False) -> List[Lis
         processed_sentences.append(sentence)
 
     return processed_sentences
+
+
+def map_sentences(sentences: List[List[str]], vocab: Vocab) -> List[List[int]]:
+    mapped_sentences = []
+
+    for sentence in sentences:
+        mapped_sentence = [vocab.get_index_from_word(token) if vocab.contains(token) else vocab.get_index_from_word("<unk>") for token in sentence]
+        mapped_sentences.append(mapped_sentence)
+
+    return mapped_sentences
+
+
+def map_sentences_inverse(sentences: List[List[int]], vocab: Vocab) -> List[List[str]]:
+    mapped_sentences = []
+
+    for sentence in sentences:
+        mapped_sentence = [vocab.get_word_from_index(index) for index in sentence]
+        mapped_sentences.append(mapped_sentence)
+
+    return mapped_sentences
 
 
 class DualingualCorpus:
@@ -64,7 +84,22 @@ class DualingualCorpus:
 
         Params: corpus_name (str): Either 'source' or 'target', denoting the type of corpus to create vocab for
         """
-        if corpus_name == "soucre":
-            pass
+        if corpus_name == "source":
+            return Vocab(self.source_sentences)
         elif corpus_name == "target":
-            pass
+            return Vocab(self.target_sentences)
+
+
+    def convert_words_to_indices(self, source_vocab: Vocab, target_vocab: Vocab):
+        """
+        Convert sentences from list of words to list of indices using the vocab object
+
+        Params:
+        source_vocab (Vocab): The vocab object containing vocabulary of the source sentences
+        target_vocab (Vocab): The vocab object containing vocabulary of the target sentences
+
+        Returns: None
+        """
+        self.source_sentences_as_index = map_sentences(self.source_sentences, source_vocab)
+        self.target_sentences_as_index = map_sentences(self.target_sentences, target_vocab)
+
