@@ -32,11 +32,12 @@ if __name__ == "__main__":
 
     source_sentences, target_sentences, source_length = next(iter(train_dataloader))
 
-    print(len(source_sentences))
-    print(len(target_sentences))
+    print(source_sentences.shape)
+    print(target_sentences.shape)
     print(source_length)
 
-    print(map_sentences_inverse(source_sentences[:1], train_source_vocab))
-    print(map_sentences_inverse(target_sentences[:1], train_target_vocab))
+    test_source_sentences = [source_sentences[:, 0].tolist()]
+    test_target_sentences = [target_sentences[:, 0].tolist()]
 
-    print(len(source_sentences[0]))
+    print(map_sentences_inverse(test_source_sentences, train_source_vocab))
+    print(map_sentences_inverse(test_target_sentences, train_target_vocab))
