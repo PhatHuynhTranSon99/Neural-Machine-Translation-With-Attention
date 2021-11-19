@@ -51,4 +51,43 @@ class SequenceToSequenceModel(torch.nn.Module):
         # P: size (max_target_sentence_length - 1, batch_size, vocab_size)
         P = self.decoder(target_sentences, enc_hidden, dec_init_state, enc_mask)
 
-        return P
+        # Use log_softmax on P to calculate the score on final dimension
+        # log_softmax has size (max_target_sentence_length - 1, batch_size, vocab_size)
+        log_softmax = torch.nn.functional.log_softmax(P, dim=2)
+
+        # Use negative sign to convert to negative log softmax
+        # neg_log_softmax has size (max_target_sentence_length - 1, batch_size, vocab_size)
+        neg_log_softmax = - log_softmax
+
+        # Gather value along vocab_size dimension (dim = 2)
+        # to get the score for each words
+
+        # Target_indices has size (max_target_length - 1, batch_size)
+        # contain the sentences where first words are removed
+        target_indices = target_sentences[1:]
+
+        # Unsqueeze to get (max_target_length - 1, batch_size, 1)
+        target_indices = target_indices.unsqueeze(2)
+
+        # Use target indices are indices for gathering loss at dimenion of vocab_size
+        # losses has size (max_target_length - 1, batch_size, 1)
+        losses = torch.gather(neg_log_softmax, index=target_indices, dim=2)
+
+        # squeeze losses to get losses (max_target_length - 1, batch_size)
+        losses = losses.squeeze(2)
+
+        # these losses include <pad> token loss -> We need to remove that using a mask
+        # target_mask has size (max_sentence_length - 1, batch_size) (without first words)
+        # is one where there is a non-padding token, is zero where there is a padding token
+        target_mask = (target_sentences != self.decoder.vocab.get_index_from_word("<pad>")).float()
+        target_mask = target_mask[1:]
+
+        # Multiply losses with target_mask to get losses in non-padding positions only
+        # losses has size (max_target_sentence_length - 1, batch_size)
+        losses = losses * target_mask
+
+        # sum of the losses for each sentence to get losses (batch_size,)
+        # containing losses for each sentence in the batch
+        losses = losses.sum(dim=0)
+
+        return losses

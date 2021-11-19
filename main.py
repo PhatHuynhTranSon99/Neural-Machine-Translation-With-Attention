@@ -68,7 +68,7 @@ if __name__ == "__main__":
             target_length = target_sentences.shape[0]
 
             # Get result
-            P = model(source_sentences, target_sentences, source_lengths)
+            losses = model(source_sentences, target_sentences, source_lengths)
 
             # Check the size
-            # assert tuple(P.shape) == (target_length - 1, BATCH_SIZE, len(train_target_vocab)
+            assert tuple(losses.shape) == (BATCH_SIZE,)
