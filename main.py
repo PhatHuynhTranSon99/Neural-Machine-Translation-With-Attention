@@ -1,15 +1,26 @@
 import torch
 from language.corpus import DualingualCorpus, map_sentences_inverse
 from dataset.textdataset import CustomDualingualDataset, collate_fn
+from model.encoder import Encoder
+from model.decoder import Decoder
+from model.sequencetosequence import SequenceToSequenceModel
 
 SOURCE_TRAIN = "data/train.vi"
 TARGET_TRAIN = "data/train.en"
+EMBEDDING_SIZE = 5
+HIDDEN_SIZE = 10
+BATCH_SIZE = 64
+DROPOUT = 0.5
 
 if __name__ == "__main__":
+    # Create dataloader
     train_corpus = DualingualCorpus(
         source_sentences_path=SOURCE_TRAIN,
         target_sentences_path=TARGET_TRAIN
     )
+
+    print("Source sentence's size:", len(train_corpus.source_sentences))
+    print("Target sentence's size:", len(train_corpus.target_sentences))
 
     train_source_vocab = train_corpus.create_vocabulary("source")
     train_target_vocab = train_corpus.create_vocabulary("target")
@@ -30,14 +41,34 @@ if __name__ == "__main__":
         collate_fn=collate_fn
     )
 
-    source_sentences, target_sentences, source_length = next(iter(train_dataloader))
+    # Test the encoder and decoder
+    encoder = Encoder(
+        vocab=train_source_vocab,
+        embed_size=EMBEDDING_SIZE,
+        hidden_size=HIDDEN_SIZE
+    )
 
-    print(source_sentences.shape)
-    print(target_sentences.shape)
-    print(source_length)
+    decoder = Decoder(
+        vocab=train_target_vocab,
+        embed_size=EMBEDDING_SIZE,
+        hidden_size=HIDDEN_SIZE,
+        dropout=DROPOUT
+    )
 
-    test_source_sentences = [source_sentences[:, 0].tolist()]
-    test_target_sentences = [target_sentences[:, 0].tolist()]
+    model = SequenceToSequenceModel(
+        encoder=encoder,
+        decoder=decoder
+    )
 
-    print(map_sentences_inverse(test_source_sentences, train_source_vocab))
-    print(map_sentences_inverse(test_target_sentences, train_target_vocab))
+    with torch.no_grad():
+        for batch_idx, (source_sentences, target_sentences, source_lengths) in enumerate(train_dataloader):
+            print(f"Batch {batch_idx}")
+            
+            # get target_sentences max length
+            target_length = target_sentences.shape[0]
+
+            # Get result
+            P = model(source_sentences, target_sentences, source_lengths)
+
+            # Check the size
+            # assert tuple(P.shape) == (target_length - 1, BATCH_SIZE, len(train_target_vocab)

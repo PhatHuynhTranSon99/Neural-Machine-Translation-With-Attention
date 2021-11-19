@@ -55,6 +55,40 @@ def map_sentences_inverse(sentences: List[List[int]], vocab: Vocab) -> List[List
     return mapped_sentences
 
 
+def remove_empty_sentence_pairs(source_sentences: List[List[str]], target_sentences: List[List[str]]) -> Tuple[List[List[str]], List[List[int]]]:
+    """
+    Remove source and target sentence pairs where the length of the source sentences is 0
+
+    Params: 
+    source_sentences (List[List[str]]): list of source sentences (each sentence consists of string tokens)
+    target_sentences (List[List[str]]): list of target sentences (each sentence consists off string tokens)
+
+    Returns:
+    (source_sentences, target_sentences): sentence pair where empty sentences are removed
+    """
+
+    # Find index where source sentences are empty
+    source_empty_sentence_indices = []
+    for index, sentence in enumerate(source_sentences):
+        if len(sentence) == 0:
+            source_empty_sentence_indices.append(index)
+            print("Removed: ", source_sentences[index], target_sentences[index])
+
+    # Create new source and target sentences
+    filtered_source_sentences = []
+    filtered_target_sentences = []
+
+    # Remove sentences with index in source_empty_sentences_indices
+    for index, sentence in enumerate(source_sentences):
+        if index not in source_empty_sentence_indices:
+            filtered_source_sentences.append(sentence)
+
+    for index, sentence in enumerate(target_sentences):
+        if index not in source_empty_sentence_indices:
+            filtered_target_sentences.append(sentence)
+
+    return filtered_source_sentences, filtered_target_sentences
+
 class DualingualCorpus:
     """
     This class is for holding and retrieving dualingual corpus of text (en-vi or vi-en)
@@ -74,8 +108,12 @@ class DualingualCorpus:
         self.target_path = target_sentences_path
 
         # Read the files in and process sentences
-        self.source_sentences = process_sentences(get_sentences(self.source_path))
-        self.target_sentences = process_sentences(get_sentences(self.target_path), is_target=True)
+        source_sentences = process_sentences(get_sentences(self.source_path))
+        target_sentences = process_sentences(get_sentences(self.target_path), is_target=True)
+
+        # There are some sentences where the length is zero -> Remove those sentences from both source and 
+        # target sentences
+        self.source_sentences, self.target_sentences = remove_empty_sentence_pairs(source_sentences, target_sentences)
 
 
     def create_vocabulary(self, corpus_name: str):
